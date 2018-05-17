@@ -1,0 +1,83 @@
+%% Ben Keegan, Noah Wachlin
+%ME4823
+%Assignment 6 Exercise #2
+%16MAY18
+rosinit
+
+%% Create a bag file and save select topics as time series
+bag = rosbag('~/nav.bag');
+bag = rosbag('~/matlab_goals.bag');
+
+% Select by AMCL Data
+amcl_select = select(bag,'Topic','/amcl_pose');
+% Create time series object
+ts_amcl = timeseries(amcl_select,'Pose.Pose.Position.X','Pose.Pose.Position.Y',...
+    'Pose.Pose.Orientation.W','Pose.Pose.Orientation.X',...
+    'Pose.Pose.Orientation.Y','Pose.Pose.Orientation.Z');
+
+% Select Goal Data
+goal_select = select(bag,'Topic','/move_base/goal');
+% Create time series object
+ts_goal = timeseries(goal_select,'Goal.TargetPose.Pose.Position.X','Goal.TargetPose.Pose.Position.Y',...
+    'Goal.TargetPose.Pose.Orientation.W','Goal.TargetPose.Pose.Orientation.X',...
+    'Goal.TargetPose.Pose.Orientation.Y','Goal.TargetPose.Pose.Orientation.Z');
+
+% Select Odom Data
+bagselect = select(bag,'Topic','/odom');
+% Create a time series object
+ts_odom = timeseries(bagselect,'Pose.Pose.Position.X','Pose.Pose.Position.Y',...
+    'Twist.Twist.Linear.X','Twist.Twist.Angular.Z',...
+    'Pose.Pose.Orientation.W','Pose.Pose.Orientation.X',...
+    'Pose.Pose.Orientation.Y','Pose.Pose.Orientation.Z');
+
+%% Breakout Data 
+% AMCL data
+x_amcl = ts_amcl.Data(:,1);
+y_amcl = ts_amcl.Data(:,2);
+
+% Goal data
+x_goal = ts_goal.Data(:,1);
+y_goal = ts_goal.Data(:,2);
+
+% Odometry data
+x_odom = ts_odom.Data(:,1);
+y_odom = ts_odom.Data(:,2);
+
+
+%% Plots
+% Read the map image
+ifile = '~/map.pgm';   % Image file name
+I=imread(ifile);
+ 
+% Set the size scaling
+xWorldLimits = [-10 9.2];
+yWorldLimits = [-10 9.2];
+RI = imref2d(size(I),xWorldLimits,yWorldLimits);
+ 
+% Plot map
+figure(1);
+clf()
+imshow(flipud(I),RI)
+set(gca,'YDir','normal')
+
+% Decimate the data so that it plot only every Nth point.
+ii = 1:10:length(x_odom); 
+hold on
+
+% Plot the goal X and Y location
+plot(x_goal,y_goal,'r*');
+
+% Plot the amcl X and Y location
+plot(x_amcl,y_amcl,'b');
+
+% Plot the Odom X and Y location
+plot(x_odom(ii),y_odom(ii),'g');
+
+% Add labels
+title('Plot of TurtleBot X and Y');
+xlabel('X [m]'); ylabel('Y [m]');
+legend('Goal','AMCL','Odom')
+
+% Saveas images/joy_odom_xy.png
+% saveas(gcf,'~/catkin_ws/src/mrc_hw6/images/rviz_goals.png');
+saveas(gcf,'~/catkin_ws/src/mrc_hw6/images/matlab_goals.png');
